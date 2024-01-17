@@ -6,6 +6,7 @@ import PIL.ImageTk
 from tkinter import Label
 from tkinter import Frame
 
+from datetime import datetime
 
 
 class DataEntry:
@@ -137,6 +138,9 @@ class ImageEditor:
         root.bind('<Left>', lambda event: self.show_prev_image())
         #if you press right arrow key, show next image
         root.bind('<Right>', lambda event: self.show_next_image())
+        #if you press enter key, save caption
+        root.bind('<Return>', lambda event: self.hdr_enter_pressed())
+
         self.display_text(self.right_frame,self.right_bottom_frame)
         
         root.mainloop()
@@ -172,13 +176,16 @@ class ImageEditor:
         self.label_text .grid(row=row_index, column=0, padx=5, pady=5)
         self.entry_text = Entry(right_frame, width=50)
         self.entry_text.grid(row=row_index+1, column=0, padx=5, pady=5)
-        self.entry_text.insert(0, "Enter caption here")
+        self.entry_text.insert(0, "")
 
         #left and right buttons, use them with left arrow and right arrow keys
         self.button_prev = Button(self.right_bottom_frame, text="Prev", command=self.show_prev_image)
         self.button_prev.grid(row=0, column=0, padx=5, pady=5)
         self.button_next = Button(self.right_bottom_frame, text="Next", command=self.show_next_image)
         self.button_next.grid(row=0, column=1, padx=5, pady=5)
+
+        #focuse on entry_text
+        self.entry_text.focus_set()
     
     def remove_text(self):
         self.label_path.destroy()
@@ -190,7 +197,48 @@ class ImageEditor:
         self.button_next.destroy()
 
 
+    def get_current_formatted_time(self):
+        # Get current time
+        current_time = datetime.now()
 
+        # Format it as a string
+        formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
+        return formatted_time
+
+    def hdr_enter_pressed(self):
+        #Save in format of
+
+        #{
+        #"ID": 205953349093163008,
+        #"type": "SENTENCE",
+        #"time": year-month-day hour:min:sec,
+        #"text": "photo, man with beard and arm tattoos wearing black jockstrap and vest, pink background"
+        #}
+        #load caption file
+        self.save_caption()
+        self.show_next_image()
+    
+    def save_caption(self):
+        
+        with open(self.getCurrentCaptionPath(), "r") as f:
+            captions = json.load(f)
+        #get caption text
+        caption_text = self.entry_text.get()
+        if(caption_text == ""):
+            return
+        #add caption text to captions lisst 
+        my_id = 205953349093163008
+        new_entry = {
+            "ID": my_id,
+            "type": "SENTENCE",
+            "time": self.get_current_formatted_time(),
+            "text": caption_text
+        }
+        captions.append(new_entry)
+        #save caption file
+        with open(self.getCurrentCaptionPath(), "w") as f:
+            json.dump(captions, f, indent=4)
 
 
     def show_prev_image(self):
