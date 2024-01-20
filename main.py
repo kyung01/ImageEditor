@@ -7,6 +7,7 @@ from tkinter import Label
 from tkinter import Frame
 
 from datetime import datetime
+import random
 
 
 class DataEntry:
@@ -41,6 +42,7 @@ class ImageEditor:
         for image_file in image_file_paths:
             json_file = os.path.splitext(image_file)[0] + ".json"
             self.datas.append(DataEntry(image_file, json_file))
+        random.shuffle(self.datas)
         
         #check if json file exists
         for data in self.datas:
@@ -55,6 +57,7 @@ class ImageEditor:
         self.data_index = 0
         #move data until it has zero or positive weight
         while self.getCurrentDataWeight() < 0:
+            print("selected image file: " + str(self.data_index) + "Weight is " + str(self.getCurrentDataWeight()))
             self.getNextIndex()
         print("selected image file: " + str(self.data_index) + "Weight is " + str(self.getCurrentDataWeight()))
         
@@ -166,17 +169,18 @@ class ImageEditor:
         self.description_labels = []
         for caption in json_data:
             text = caption["text"]
-            if text != "DELETE_ME":
-                label_text = Label(right_frame, text=text)
-                label_text.grid(row=row_index, column=0, padx=5, pady=5)
-                self.description_labels.append(label_text)
-                row_index += 1
+            #if text != "DELETE_ME":
+            label_text = Entry(right_frame, text="", width=200)
+            label_text.grid(row=row_index, column=0, padx=5, pady=5)
+            label_text.insert(0, text)
+            self.description_labels.append(label_text)
+            row_index += 1
 
         self.label_text = Label(right_frame, text="Enter caption:")
         self.label_text .grid(row=row_index, column=0, padx=5, pady=5)
-        self.entry_text = Entry(right_frame, width=50)
+        self.entry_text = Entry(right_frame, width=200)
         self.entry_text.grid(row=row_index+1, column=0, padx=5, pady=5)
-        self.entry_text.insert(0, "")
+        self.entry_text.insert(0, "photo")
 
         #left and right buttons, use them with left arrow and right arrow keys
         self.button_prev = Button(self.right_bottom_frame, text="Prev", command=self.show_prev_image)
@@ -217,15 +221,32 @@ class ImageEditor:
         #}
         #load caption file
         self.save_caption()
-        self.show_next_image()
+        self.getNextIndex()
+        self.update_image()
     
     def save_caption(self):
+        print("saving caption")
         
         with open(self.getCurrentCaptionPath(), "r") as f:
             captions = json.load(f)
         #get caption text
-        caption_text = self.entry_text.get()
+        replaced_words = [["bman","black man",],["bg","background"],["grad","gradient"],["bs","bodysuit"],["ls","long sleeve"],["lav","looking at viewer"],["mmwb","muscular man with beard" ],["bv","back view"],["sd","side view"]]
+        #
+        caption_text = self.entry_text.get().strip()
+        for word in replaced_words:
+            #replace " word[0] " with " word[1] "
+            caption_text = caption_text.replace(" " + word[0] + " ", " " + word[1] + " ")
+            #replace " word[0]," with " word[1],"
+            caption_text = caption_text.replace(" " + word[0] + ",", " " + word[1] + ",")
+            #replace " word[0]." with " word[1]."
+            caption_text = caption_text.replace(" " + word[0] + ".", " " + word[1] + ".")
+            #check end of string
+            if caption_text.endswith(" " + word[0]):
+                caption_text = caption_text[:-len(" " + word[0])] + " " + word[1]
+            
         if(caption_text == ""):
+            return
+        if(caption_text == "photo"):
             return
         #add caption text to captions lisst 
         my_id = 205953349093163008
@@ -236,16 +257,20 @@ class ImageEditor:
             "text": caption_text
         }
         captions.append(new_entry)
+        #shuffle captions
+        #random.shuffle(captions)
         #save caption file
         with open(self.getCurrentCaptionPath(), "w") as f:
             json.dump(captions, f, indent=4)
 
 
     def show_prev_image(self):
+        self.save_caption()
         self.getPrevIndex()
         self.update_image()
 
     def show_next_image(self):
+        self.save_caption()
         self.getNextIndex()
         self.update_image()
 
